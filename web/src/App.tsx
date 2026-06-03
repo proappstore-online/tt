@@ -33,21 +33,23 @@ function AppShell() {
     let cancelled = false;
     app.roles
       .check('owner')
-      .then((isOwner) => {
-        if (cancelled) return false;
+      .then((isOwner: boolean) => {
+        if (cancelled) return false as boolean;
         if (isOwner) {
           setCanSeeTeam(true);
-          return false;
+          return false as boolean;
         }
         return app.roles.check('moderator');
       })
-      .then((isMod) => {
+      .then((isMod: boolean) => {
         if (!cancelled && isMod) setCanSeeTeam(true);
       })
       .catch(() => {
         /* not signed in — no team link */
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
@@ -157,11 +159,11 @@ function AppShell() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <ProShell app={app} appName="TT" allowFree showThemeToggle>
+    <ProShell app={app} appName="TT" allowFree showThemeToggle>
+      <BrowserRouter>
         <DbInit />
         <AppShell />
-      </ProShell>
-    </BrowserRouter>
+      </BrowserRouter>
+    </ProShell>
   );
 }
