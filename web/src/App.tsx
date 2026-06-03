@@ -20,10 +20,10 @@ function DbInit() {
 }
 
 const NAV_TABS = [
-  { to: '/',         label: 'Timer',    icon: '⏱' },
-  { to: '/entries',  label: 'Entries',  icon: '📋' },
-  { to: '/projects', label: 'Projects', icon: '📁' },
-  { to: '/reports',  label: 'Reports',  icon: '📊' },
+  { to: '/',         label: 'Timer',    icon: '\u23F1' },
+  { to: '/entries',  label: 'Entries',  icon: '\uD83D\uDCCB' },
+  { to: '/projects', label: 'Projects', icon: '\uD83D\uDCC1' },
+  { to: '/reports',  label: 'Reports',  icon: '\uD83D\uDCCA' },
 ] as const;
 
 function AppShell() {
@@ -31,22 +31,25 @@ function AppShell() {
 
   useEffect(() => {
     let cancelled = false;
-    app.roles
-      .check('owner')
-      .then((isOwner: boolean) => {
-        if (cancelled) return false as boolean;
+
+    async function checkRoles() {
+      try {
+        const isOwner = await app.roles.check('owner');
+        if (cancelled) return;
         if (isOwner) {
           setCanSeeTeam(true);
-          return false as boolean;
+          return;
         }
-        return app.roles.check('moderator');
-      })
-      .then((isMod: boolean) => {
-        if (!cancelled && isMod) setCanSeeTeam(true);
-      })
-      .catch(() => {
-        /* not signed in — no team link */
-      });
+        const isMod = await app.roles.check('moderator');
+        if (!cancelled && isMod) {
+          setCanSeeTeam(true);
+        }
+      } catch {
+        // not signed in — no team link
+      }
+    }
+
+    void checkRoles();
     return () => {
       cancelled = true;
     };
@@ -97,7 +100,7 @@ function AppShell() {
                   ].join(' ')
                 }
               >
-                <span aria-hidden="true">👥</span>
+                <span aria-hidden="true">\uD83D\uDC65</span>
                 Team
               </NavLink>
             </li>
@@ -159,11 +162,13 @@ function AppShell() {
 
 export default function App() {
   return (
-    <ProShell app={app} appName="TT" allowFree showThemeToggle>
-      <BrowserRouter>
-        <DbInit />
-        <AppShell />
-      </BrowserRouter>
-    </ProShell>
+    <div className="bg-white dark:bg-gray-950 min-h-screen">
+      <ProShell app={app} appName="TT" allowFree showThemeToggle>
+        <BrowserRouter>
+          <DbInit />
+          <AppShell />
+        </BrowserRouter>
+      </ProShell>
+    </div>
   );
 }
