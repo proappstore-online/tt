@@ -30,19 +30,24 @@ function AppShell() {
   const [canSeeTeam, setCanSeeTeam] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     app.roles
       .check('owner')
       .then((isOwner) => {
+        if (cancelled) return false;
         if (isOwner) {
           setCanSeeTeam(true);
-          return false; // skip moderator check
+          return false;
         }
         return app.roles.check('moderator');
       })
       .then((isMod) => {
-        if (isMod) setCanSeeTeam(true);
+        if (!cancelled && isMod) setCanSeeTeam(true);
       })
-      .catch(() => {/* not signed in yet */});
+      .catch(() => {
+        /* not signed in — no team link */
+      });
+    return () => { cancelled = true; };
   }, []);
 
   return (
@@ -152,11 +157,11 @@ function AppShell() {
 
 export default function App() {
   return (
-    <ProShell app={app} appName="TT" allowFree showThemeToggle>
-      <BrowserRouter>
+    <BrowserRouter>
+      <ProShell app={app} appName="TT" allowFree showThemeToggle>
         <DbInit />
         <AppShell />
-      </BrowserRouter>
-    </ProShell>
+      </ProShell>
+    </BrowserRouter>
   );
 }
