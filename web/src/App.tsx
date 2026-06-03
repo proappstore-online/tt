@@ -20,10 +20,10 @@ function DbInit() {
 }
 
 const NAV_TABS = [
-  { to: '/',         label: 'Timer',    icon: '\u23F1' },
-  { to: '/entries',  label: 'Entries',  icon: '\uD83D\uDCCB' },
-  { to: '/projects', label: 'Projects', icon: '\uD83D\uDCC1' },
-  { to: '/reports',  label: 'Reports',  icon: '\uD83D\uDCCA' },
+  { to: '/',         label: 'Timer',    icon: '⏱' },
+  { to: '/entries',  label: 'Entries',  icon: '📋' },
+  { to: '/projects', label: 'Projects', icon: '📁' },
+  { to: '/reports',  label: 'Reports',  icon: '📊' },
 ] as const;
 
 function AppShell() {
@@ -100,7 +100,7 @@ function AppShell() {
                   ].join(' ')
                 }
               >
-                <span aria-hidden="true">\uD83D\uDC65</span>
+                <span aria-hidden="true">👥</span>
                 Team
               </NavLink>
             </li>
