@@ -1,0 +1,85 @@
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  deployments: write
+
+concurrency:
+  group: deploy-${{ github.repository }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: pnpm install --no-frozen-lockfile
+
+      - name: Build
+        env:
+          VITE_COMMIT_SHA: ${{ github.sha }}
+        run: pnpm build
+
+      - name: Locate build output
+        id: dist
+        run: |
+          if [ -d web/dist ]; then echo "dir=web/dist" >> "$GITHUB_OUTPUT"
+          elif [ -d dist ]; then echo "dir=dist" >> "$GITHUB_OUTPUT"
+          else echo "::error::No build output (looked for ./dist and ./web/dist)"; exit 1; fi
+
+      # Code-health scan (VCQA) — REPORT ONLY, never blocks the deploy. Writes
+      # report.json into the deployed output so the console's Dev Ops tab can read
+      # it at <app>.proappstore.online/.vcqa/report.json. A low score is a signal,
+      # not a gate (a fresh scaffold legitimately scores low on test coverage).
+      - name: Code-health scan (VCQA, report-only)
+        continue-on-error: true
+        run: |
+          npx -y @vibecodeqa/cli@latest --skip-tests . || true
+          if [ -f .vibe-check/report.json ]; then
+            mkdir -p "${{ steps.dist.outputs.dir }}/.vcqa"
+            cp .vibe-check/report.json "${{ steps.dist.outputs.dir }}/.vcqa/report.json"
+            [ -f .vibe-check/badge.svg ] && cp .vibe-check/badge.svg "${{ steps.dist.outputs.dir }}/.vcqa/badge.svg" || true
+          fi
+
+      - name: Deploy to Cloudflare Pages
+        run: npx wrangler@3 pages deploy "${{ steps.dist.outputs.dir }}" --project-name=proappstore-${{ github.event.repository.name }} --branch=main
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: c1089bfcc43c1c6c2aa89e584e86f0bc
+
+  # Behavioural gate: drive the LIVE app in a real browser (the thing tsc/build
+  # can't check). Runs after deploy; a failure fails the run, so the deploy
+  # gate routes the ticket back to Dev with the Playwright output. Auth uses a
+  # platform fixture session via the SDK's real sign-in path (no test bypass);
+  # auth-gated specs skip when PAS_E2E_SESSION_TOKEN is unset.
+  e2e:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install E2E deps
+        working-directory: e2e
+        run: npm install
+      - name: Install Playwright browser
+        working-directory: e2e
+        run: npx playwright install --with-deps chromium
+      - name: Run E2E against the live app
+        working-directory: e2e
+        env:
+          E2E_BASE_URL: https://${{ github.event.repository.name }}.proappstore.online
+          E2E_SESSION_TOKEN: ${{ secrets.PAS_E2E_SESSION_TOKEN }}
+        run: npx playwright test
