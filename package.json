@@ -6,5 +6,6 @@
     "dev": "pnpm --filter tt-web dev",
     "build": "pnpm --filter tt-web build",
     "typecheck": "pnpm --filter tt-web typecheck"
-  }
+  },
+  "packageManager": "pnpm@10.30.3"
 }
